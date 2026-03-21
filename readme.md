@@ -69,18 +69,23 @@ You can ship filter packs for different workflows
 If config.json is missing or invalid, Majik_mapper falls back to safe defaults.
 ⚠ Duplicate Detection
 If a node name appears multiple times in the I3D, Majik_mapper reports it:
+```
 <!-- "hydraulicRod" appears 3 times: -->
 <!--     0>10|0|3|1 -->
 <!--     0>10|0|3|4 -->
 <!--     0>10|0|3|7 -->
+
+```
 Sorted by rarity so the weird ones surface first.
 
 📦 Output
 All modes write to:
 i3d_mappings.xml
 Unless overridden with:
+```
 -o my_output.xml
 
+```
 🛠 Requirements
 Python 3.8+
 A .i3d file
