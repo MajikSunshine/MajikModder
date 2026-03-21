@@ -24,16 +24,27 @@ Every path looks like:
 #### **1. Full I3D Mapping (default)**
 Maps *every* named node in the `.i3d`.  
 Perfect for audits, debugging, and forensic analysis.
+```
 python Majik_mapper.py truck.i3d
+
+```
 
 #### **2. XML‑Only Mode (`--xml-only`)**
 Maps only the node names referenced in your XML **outside** of existing `<i3dMapping>` entries.
+```
 python Majik_mapper.py --xml-only vehicle.xml
+
+```
+
 Ideal for generating mappings for new systems without touching existing ones.
 
 #### **3. XML‑Remap Mode (`--remap`)**
 Reads your existing `<i3dMappings>` block and regenerates *only those* mappings.
+```
 python Majik_mapper.py --remap vehicle.xml
+
+```
+
 This is the “I moved stuff in GE — update my mappings” button.
 
 ---
