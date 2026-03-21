@@ -1,5 +1,3 @@
-Here you go, Richard — the full README.md file, clean, complete, and ready to drop straight into your GitHub repo. No placeholders, no missing sections, just a solid first‑release document you can evolve over time.
-
 # **Majik_mapper**
 ### *Deterministic. Forensic. Future‑proof.*
 A next‑generation I3D node‑mapping tool for Farming Simulator modders.  
@@ -135,18 +133,10 @@ If you fork, modify, or extend this tool, please credit the original author — 
 
 📜 License
 
-(Coming soon)
+This project is licensed under the Apache License 2.0.
 
+You may obtain a copy of the License at:
 
----
+http://www.apache.org/licenses/LICENSE-2.0
 
-If you want, I can also generate:
-
-- a matching `config.json` example file  
-- a `.gitignore` tailored for Python tools  
-- a “Quick Start” section  
-- a “Troubleshooting” section  
-- a “Contributing” section  
-- or a full repo folder structure layout  
-
-Just say the word and I’ll expand it.
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
