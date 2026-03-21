@@ -86,26 +86,34 @@ Unless overridden with:
 -o my_output.xml
 
 ```
+
 🛠 Requirements
-Python 3.8+
-A .i3d file
-Optional: an XML file containing <i3dMappings> or node references
-Optional: config.json for custom filters
+
+- Python 3.8+
+- A .i3d file
+- Optional: an XML file containing `<i3dMappings>` or node references
+- Optional: `config.json` for custom filters
 
 🧩 Why Majik_mapper Exists
+
 Because FS modders deserve a tool that:
-never overwrites your work
-never guesses
-never hides evidence
-never produces unstable paths
-never forces you to hand‑edit 1,000 lines of mappings again
+
+- never overwrites your work
+- never guesses
+- never hides evidence
+- never produces unstable paths
+- never forces you to hand‑edit 1,000 lines of mappings again
+
 Majik_mapper is deterministic, forensic, and built for long‑term survival across FS25, FS26, FS27, and beyond.
 
 🧙‍♂️ Author
-Created by MajikSunshineGitHub: https://github.com/MajikSunshine
+
+Created by [MajikSunshine](https://github.com/MajikSunshine)
+
 If you fork, modify, or extend this tool, please credit the original author — this mapper is part of FS modding history now.
 
 📜 License
+
 This project is licensed under the Apache License 2.0.
 You may obtain a copy of the License at:
 http://www.apache.org/licenses/LICENSE-2.0
