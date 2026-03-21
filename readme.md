@@ -47,6 +47,7 @@ Majik_mapper uses a simple JSON config file to control how XML‑only mode filte
   "exclude_if_attr": ["name", "title", "colorScale"],
   "max_length": 64
 }
+
 ```
 
 Why this matters
