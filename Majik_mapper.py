@@ -53,19 +53,27 @@ def walk(node, path, results):
     for i, child in enumerate(children):
         walk(child, path + [i], results)
 
-
 def compact_path(path):
     """
-    Convert a list like [0,1,7,3,0] to GIANTS compact style: "0>1|7|3|0".
+    Convert a list like [0,1,7,3] into GIANTS compact style:
+    [0]       -> "0>"
+    [0,0]     -> "0>0"
+    [0,6,0,0] -> "0>6|0|0"
+    [1]       -> "1>"
+    [1,2]     -> "1>2"
     """
     if not path:
-        return ""
+        # Shouldn't normally happen if we always start with a component index,
+        # but keep a safe default.
+        return "0>"
+
     root = path[0]
     rest = path[1:]
+
     if not rest:
         return f"{root}>"
-    return f'{root}>' + "|".join(str(i) for i in rest)
 
+    return f'{root}>' + "|".join(str(i) for i in rest)
 
 def generate_all_mappings(i3d_file):
     tree = ET.parse(i3d_file)
@@ -76,10 +84,14 @@ def generate_all_mappings(i3d_file):
         raise ValueError("No <Scene> section found in .i3d file")
 
     results = []
-    # Scene is usually the first child, index 0 under root
-    walk(scene, [0], results)
-    return results  # list of (name, path_list)
 
+    # Each direct child of <Scene> is a "component root":
+    # component 0 -> 0>
+    # component 1 -> 1>
+    for comp_index, child in enumerate(list(scene)):
+        walk(child, [comp_index], results)
+
+    return results  # list of (name, path_list)
 
 def build_name_index(mappings):
     """
@@ -97,6 +109,35 @@ def autodetect_file(ext):
         return None
     return candidates[0]
 
+def run_raw_i3d_mode(i3d_file, output_file):
+    """
+    Raw I3D dump:
+    - Walk the I3D tree
+    - Write each mapping in DFS order
+    - No grouping, no duplicate detection, no warnings
+    """
+    tree = ET.parse(i3d_file)
+    root = tree.getroot()
+
+    scene = root.find("Scene")
+    if scene is None:
+        raise ValueError("No <Scene> section found in .i3d file")
+
+    with open(output_file, "w", encoding="utf-8") as f:
+
+        def raw_walk(node, path):
+            name = node.attrib.get("name")
+            if name:
+                f.write(f'<i3dMapping id="{name}" node="{compact_path(path)}"/>\n')
+
+            for i, child in enumerate(list(node)):
+                raw_walk(child, path + [i])
+
+        # Each direct child of <Scene> is a component root
+        for comp_index, child in enumerate(list(scene)):
+            raw_walk(child, [comp_index])
+
+    print(f"Done. Mode=RAW_I3D. Output written to {output_file}")
 
 # -------------------------
 # XML helpers (config-driven)
@@ -207,6 +248,9 @@ def main():
     parser.add_argument("-o", "--output", help="Output file name (default: i3d_mappings.xml).")
     parser.add_argument("--config", help="Path to config.json (default: ./config.json).")
 
+    parser.add_argument("--raw-i3d", action="store_true",
+        help="Raw I3D dump: write each node in DFS order with no duplicate grouping.")
+
     args = parser.parse_args()
 
     mode_xml_only = args.xml_only is not None
@@ -255,6 +299,10 @@ def main():
 
     output_file = args.output if args.output else "i3d_mappings.xml"
 
+    if args.raw_i3d:
+        run_raw_i3d_mode(i3d_file, output_file)
+        return
+    
     # Build full mapping index from I3D
     all_mappings = generate_all_mappings(i3d_file)
     name_index = build_name_index(all_mappings)
