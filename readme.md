@@ -1,111 +1,70 @@
-```
-# **Majik_mapper**
-### *Deterministic. Forensic. Future‑proof.*
-A next‑generation I3D node‑mapping tool for Farming Simulator modders.  
-Created by **[MajikSunshine](https://github.com/MajikSunshine)**.
+# MajikModder
 
 ---
 
-## ⭐ Overview
-**Majik_mapper** is a compact‑path, config‑driven, multi‑mode mapping engine designed to eliminate the pain of maintaining `<i3dMapping>` sections in Farming Simulator mods.  
-It walks your `.i3d` scene tree deterministically and outputs clean, compact GIANTS‑style node paths — with zero guesswork, zero drift, and zero surprises.  
-This is the mapper GIANTS *should* have shipped.
+# **MajikModder – FS25 Modding Toolkit**
+
+A unified, developer‑grade toolkit for **Farming Simulator 25** mod creators. MajikModder combines the original **Majik_mapper** system with a full suite of material indexing, fingerprinting, node synchronization, and I3D repair utilities. The goal is simple: **make FS25 mod building faster, safer, and repeatable**, without the usual manual XML digging or error‑prone I3D editing.
 
 ---
 
-## 🚀 Features
+## **What MajikModder Actually Does**
 
-### **✔ Always outputs compact GIANTS paths**
-No debug format. No exceptions.  
-Every path looks like:
-```
-0>10|0|0|0|0|5|0
-```
+### **1. Maps and analyzes I3D files**
+MajikModder can read, traverse, and summarize I3D structures, giving you a human‑friendly view of shapes, materials, nodes, and file references. This eliminates guesswork when diagnosing broken materials, missing textures, or mismatched node paths.
 
-### **✔ Four operational modes**
+### **2. Builds material fingerprints (PFK/PMK)**
+The toolkit generates unique fingerprints for materials across your mod and the GIANTS data folder. This lets you:
 
-#### **1. Full I3D Mapping (default)**
-Maps *every* named node in the `.i3d`.  
-Perfect for audits, debugging, and forensic analysis.
-```
-python Majik_mapper.py truck.i3d
-```
+- detect duplicate materials  
+- identify reused assets  
+- track down mismatched or missing textures  
+- build consistent material libraries for large mods  
 
-#### **2. XML‑Only Mode (`--xml-only`)**
-Maps only the node names referenced in your XML **outside** of existing `<i3dMapping>` entries.
-```
-python Majik_mapper.py --xml-only vehicle.xml
-```
-Ideal for generating mappings for new systems without touching existing ones.
+It’s essentially a **material indexing system** for FS25.
 
-#### **3. XML‑Remap Mode (`--remap`)**
-Reads your existing `<i3dMappings>` block and regenerates *only those* mappings.
-```
-python Majik_mapper.py --remap vehicle.xml
-```
-This is the “I moved stuff in GE — update my mappings” button.
+### **3. Syncs materials between I3D files**
+MajikModder can compare two I3D files and automatically copy or patch material definitions. This is ideal when:
 
-#### **4. Raw I3D Dump (`--raw-i3d`)**
-Writes every node in DFS order with **no grouping**, **no filtering**, **no duplicate detection**, and **no warnings**.
-```
-python Majik_mapper.py truck.i3d --raw-i3d
-```
-Ideal for forensic inspection, debugging, and raw tree analysis.
+- updating older mods  
+- porting assets  
+- repairing broken materials  
+- merging multiple I3D sources  
 
----
+It replaces hours of manual XML editing with a single automated pass.
 
-## 🧠 Config‑Driven Filters (`config.json`)
-Majik_mapper uses a simple JSON config file to control how XML‑only mode filters attribute values:
-```json
-{
-  "exclude_if_contains": ["/", "\\", ">", "|", " ", "<", "=", ":"],
-  "exclude_if_tag": ["i3dMapping", "l10n"],
-  "exclude_if_attr": ["name", "title", "colorScale"],
-  "max_length": 64
-}
-```
+### **4. Repairs common I3D issues**
+The toolkit includes utilities to fix:
 
-**Why this matters:**
-- Filters evolve without touching the script  
-- Future FS versions won’t break the tool  
-- Modders can tune strictness  
-- You can ship filter packs for different workflows  
+- broken `<Files filename="...">` entries  
+- mismatched material paths  
+- inconsistent node names  
+- missing texture references  
+- duplicated file entries  
 
-If `config.json` is missing or invalid, Majik_mapper falls back to safe defaults.
+These tools help stabilize mods that have been edited across Blender, GE, and external pipelines.
 
----
+### **5. Scans GIANTS data for global references**
+MajikModder can crawl the entire FS25 `data` directory to build a global fingerprint map. This allows your mod to:
 
-## ⚠ Duplicate Detection (non‑raw modes)
-If a node name appears multiple times in the I3D, Majik_mapper reports it:
-```
-<!-- "hydraulicRod" appears 3 times: -->
-<!--     0>10|0|3|1 -->
-<!--     0>10|0|3|4 -->
-<!--     0>10|0|3|7 -->
-```
-Sorted by rarity so the unusual ones surface first.
+- identify GIANTS‑provided materials  
+- avoid collisions  
+- reuse official assets safely  
+- detect when a mod accidentally duplicates GIANTS content  
 
----
+This is especially useful for large vehicle or map projects.
 
-## 📦 Output
-All non‑raw modes write to:
-```
-i3d_mappings.xml
-```
+### **6. Provides structured utilities for mod building**
+The toolkit includes workflow helpers for:
 
-Override with:
-```
--o my_output.xml
-```
+- node synchronization  
+- material renaming  
+- global dupe detection  
+- raw I3D dumps  
+- human‑readable summaries  
+- automated mod‑building pipelines  
 
----
-
-## 🛠 Requirements
-
-- Python 3.8+  
-- A `.i3d` file  
-- Optional: an XML file containing `<i3dMappings>` or node references  
-- Optional: `config.json` for custom filters  
+These utilities make MajikModder more than a script collection — it’s a **repeatable modding framework**.
 
 ---
 
