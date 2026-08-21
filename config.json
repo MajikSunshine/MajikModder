@@ -1,0 +1,6 @@
+{
+  "exclude_if_contains": ["/", "\\", ">", "|", " ", "<", "=", ":"],
+  "exclude_if_tag": ["i3dMapping", "l10n"],
+  "exclude_if_attr": ["name", "title", "colorScale"],
+  "max_length": 64
+}
