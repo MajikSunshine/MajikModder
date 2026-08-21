@@ -1222,122 +1222,6 @@ def run_material_sync():
         print(mid)
     print(f"\nTotal materials: {len(material_set)}\n")
 
-# ------------------------------------------------------------
-# MATERIAL RENAMER USING PMK SUFFIX "__AB12"  (FIXED VERSION)
-# ------------------------------------------------------------
-
-def rename_materials_with_pmk():
-    print("\n=== MATERIAL RENAME USING PMK SUFFIX ===")
-
-    # --------------------------------------------------------
-    # Verify PFK + PMK existence
-    # --------------------------------------------------------
-    local_pfk = os.path.join(PATHS["local_yaml_dir"], "pfk.yaml")
-    global_pfk = os.path.join(PATHS["global_yaml_dir"], "pfk_global.yaml")
-    local_pmk = os.path.join(PATHS["local_yaml_dir"], "pmk.yaml")
-    global_pmk = os.path.join(PATHS["global_yaml_dir"], "pmk_global.yaml")
-
-    missing = []
-    if not os.path.isfile(local_pfk): missing.append(local_pfk)
-    if not os.path.isfile(global_pfk): missing.append(global_pfk)
-    if not os.path.isfile(local_pmk): missing.append(local_pmk)
-    if not os.path.isfile(global_pmk): missing.append(global_pmk)
-
-    if missing:
-        print("[ERROR] Cannot rename materials — missing required YAML:")
-        for m in missing:
-            print("   -", m)
-        print("Run PFK + PMK builders first.")
-        return
-
-    # --------------------------------------------------------
-    # Load PMK registry (local overrides global)
-    # --------------------------------------------------------
-    pmk_registry = {}
-
-    def load_yaml(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except:
-            return {}
-
-    global_pmk_data = load_yaml(global_pmk)
-    local_pmk_data  = load_yaml(local_pmk)
-
-    # Merge global + local
-    if "PMKRegistry" in global_pmk_data:
-        pmk_registry.update(global_pmk_data["PMKRegistry"])
-    if "PMKRegistry" in local_pmk_data:
-        pmk_registry.update(local_pmk_data["PMKRegistry"])
-
-    print(f"[INFO] Loaded {len(pmk_registry)} PMK entries.")
-
-    # --------------------------------------------------------
-    # Locate main I3D
-    # --------------------------------------------------------
-    main_i3d_dir = PATHS["main_i3d_dir"]
-    i3d_files = glob.glob(os.path.join(main_i3d_dir, "*.i3d"))
-
-    if not i3d_files:
-        print("[ERROR] No main I3D found in:", main_i3d_dir)
-        return
-
-    main_i3d = i3d_files[0]
-    print("[INFO] Renaming materials in:", main_i3d)
-
-    # --------------------------------------------------------
-    # Parse I3D
-    # --------------------------------------------------------
-    tree = ET.parse(main_i3d)
-    root = tree.getroot()
-
-    materials = root.findall(".//Material")
-    print(f"[INFO] Found {len(materials)} materials.")
-
-    rename_count = 0
-    skip_count = 0
-
-    # --------------------------------------------------------
-    # Rename each material
-    # --------------------------------------------------------
-    for mat in materials:
-        old_name = mat.get("name", "").strip()
-
-        if not old_name:
-            print("[WARN] Material has no name — skipped.")
-            skip_count += 1
-            continue
-
-        # ----------------------------------------------------
-        # PMK lookup by materialName (CORRECT)
-        # ----------------------------------------------------
-        pmk = None
-        for pmk_key, info in pmk_registry.items():
-            if info.get("materialName", "") == old_name:
-                pmk = pmk_key
-                break
-
-        if not pmk:
-            print(f"[WARN] No PMK for material '{old_name}' — skipped.")
-            skip_count += 1
-            continue
-
-        # ----------------------------------------------------
-        # Build new name: oldName__PMK
-        # ----------------------------------------------------
-        new_name = f"{old_name}__{pmk}"
-
-        # Apply rename
-        mat.set("name", new_name)
-        rename_count += 1
-
-    # --------------------------------------------------------
-    # Save patched I3D
-    # --------------------------------------------------------
-    tree.write(main_i3d, encoding="utf-8", xml_declaration=True)
-    print(f"[SUCCESS] Renamed {rename_count} materials. Skipped {skip_count}.")
-
 def scan_giants_data_folder():
     print("\n=== SCAN GIANTS DATA FOLDER (GLOBAL PFK BUILDER) ===")
 
@@ -2239,73 +2123,78 @@ def rename_nodes_with_pnk():
 # -------------------------------------------------------------------------
 
 # 1. Majik_mapper (FULL I3D)
-#    Runs Majik_mapper in full mode. Parses entire I3D, rewrites nodes,
-#    remaps materials, and applies all mapping logic.
+#    Runs Majik_mapper in full mode. Parses the entire I3D, walks all nodes,
+#    generates compact GIANTS-style paths, and rewrites <i3dMappings>.
+#    This is the full deterministic mapping pass.
 
 # 2. Majik_mapper (XML-only)
-#    Runs Majik_mapper without touching geometry. Only XML sections are
-#    processed and remapped.
+#    Processes only XML references outside <i3dMappings>. Generates mappings
+#    for new systems without touching existing ones. No geometry parsing.
 
 # 3. Majik_mapper (XML-remap)
-#    Remaps XML-only sections using existing mapping rules. No geometry
-#    parsing, no raw dump.
+#    Reads your existing <i3dMappings> block and regenerates ONLY those
+#    mappings. This is the “I moved stuff in GE — update my mappings” mode.
 
 # 4. Majik_mapper (RAW dump)
-#    Dumps raw I3D node and material data for debugging. No remapping.
+#    Dumps every node in DFS order with no grouping, no filtering, and no
+#    duplicate detection. Pure forensic I3D tree output.
 
 # 5. Clone Hunter (PFK Builder)
-#    Scans all I3Ds, fingerprints every file, assigns PFK identities,
-#    canonicalizes paths, detects duplicates, and updates PFk registries.
+#    Scans all I3Ds, fingerprints every DDS/PNG file, assigns PFK identities,
+#    canonicalizes paths, detects duplicates, and updates the PFk registry.
 
 # 6. Build PMKs
-#    Generates PMK (material fingerprint) files for the mod. Requires
-#    canonical PFK registry.
+#    Generates PMK (material fingerprint) entries for the mod. Requires a
+#    canonical PFK registry. PMKs identify materials by content, not name.
 
 # 7. Build PNKs v2
-#    Generates PNK identity files using the v2 pipeline. Replaces all
-#    legacy PMK/PNK logic. This is the correct, modern builder.
+#    Generates PNK identity entries for nodes using the v2 pipeline. This is
+#    the modern, stable node-identity system replacing legacy logic.
 
 # 8. Material Sync
 #    Syncs material definitions between I3D and XML. Ensures consistent
-#    material naming, slot usage, and texture references.
+#    naming, shader usage, texture references, and parameter blocks.
 
 # 9. Node Sync
-#    Syncs node names, transforms, and hierarchy between I3D and XML.
+#    Syncs node names and hierarchy between I3D and XML. Ensures XML
+#    references match the actual I3D structure after renaming or refactors.
 
-# 10. Rename Materials Using PNK Suffix
-#    Renames materials in the I3D using PNK suffixes for consistency
-#    with the v2 identity system.
+# 10. Rename Materials Using PMK Suffix
+#     Renames materials in the I3D using PMK suffixes (coreName__PMK).
+#     Enforces deterministic material identity across the mod.
 
-# 11. Scan GIANTS Data Folder (PFK Global Builder)
-#     Scans GIANTS $data folder, fingerprints all DDS/PNG files and shaders,
-#      updates the global PFk registry, and detects duplicates.
+# 11. Rename Nodes Using PNK Suffix
+#     Renames nodes in the I3D using PNK suffixes (coreName_PNK).
+#     Enforces deterministic node identity across the mod.
 
-# 12. Scan Mats Folder (update global PFk)
-#     Scans your custom $mats folder, fingerprints files, and updates
-#     the global PFk registry.
+# 12. Mat-Man GIANTS $data chomper (PFK Global Builder)
+#     Scans the GIANTS $data folder, fingerprints all DDS/PNG files, and
+#     updates the global PFk registry. Detects duplicates and canonical paths.
 
-# 13. Build GIANTS PMKs (Global GIANTS Material Fingerprint)
+# 13. Scan Mats Folder (update global PFk)
+#     Scans your custom $mats folder, fingerprints files, and updates the
+#     global PFk registry. Useful for mod-specific material libraries.
+
+# 14. Build GIANTS PMKs (Global GIANTS Material Fingerprint)
 #     Builds PMKs for GIANTS materials using the global PFk registry.
-#     (Legacy support — still useful for GIANTS assets.)
+#     Legacy support for GIANTS assets; still useful for reference.
 
-# 14. Summarize I3D (Human View)
+# 15. Summarize I3D (Human View)
 #     Prints a human-readable summary of the I3D: materials, textures,
-#     PFK identities, and resolved canonical paths.
+#     PFK identities, and resolved canonical paths. Great for debugging.
 
-# 15. Repair I3D <Files filename= values>
+# 16. Repair I3D <Files filename="..."> values
 #     Rewrites <File filename="..."> entries using canonical PFK paths.
 #     Converts $mats → textures/ for Giants Editor compatibility.
-#     Does NOT modify PFk registries.
 
-# 16. Check dupes by file name
+# 17. Check dupes by file name
 #     Reports duplicate PFk/PNK/PMK entries that share the same filename.
 
-# 17. Check dupes by path
+# 18. Check dupes by path
 #     Reports duplicate PFk/PNK/PMK entries that share the same canonical path.
 
-# 18. Exit
+# 19. Exit
 #     Quit the tool.
-
 
 def menu():
     while True:
@@ -2319,15 +2208,16 @@ def menu():
         print("7. Build PNKs v2")
         print("8. Material Sync")
         print("9. Node Sync")
-        print("10. Rename Materials Using PNK Suffix")
-        print("11. Mat-Man GIANTS $data chomper (PFK Global Builder)")
-        print("12. Scan Mats Folder (update global PFk)")
-        print("13. Build GIANTS PMKs (Global GIANTS Material Fingerprint)")
-        print("14. Summarize I3D (Human View)")
-        print("15. Repair I3D <Files filename=\"...\"> values")
-        print("16. Check dupes by file name")
-        print("17. Check dupes by path")
-        print("18. Exit")
+        print("10. Rename Materials Using PMK Suffix")
+        print("11. Rename Nodes Using PNK Suffix")
+        print("12. Mat-Man GIANTS $data chomper (PFK Global Builder)")
+        print("13. Scan Mats Folder (update global PFk)")
+        print("14. Build GIANTS PMKs (Global GIANTS Material Fingerprint)")
+        print("15. Summarize I3D (Human View)")
+        print("16. Repair I3D <Files filename=\"...\"> values")
+        print("17. Check dupes by file name")
+        print("18. Check dupes by path")
+        print("19. Exit")
 
         choice = input("Select option: ").strip()
 
@@ -2351,28 +2241,30 @@ def menu():
             elif choice == "9":
                 node_sync()
             elif choice == "10":
-                rename_materials_with_pnk()
+                rename_materials_with_pmk()
             elif choice == "11":
-                scan_giants_data_folder()
+                rename_nodes_with_pnk()
             elif choice == "12":
-                scan_mats_folder()
+                scan_giants_data_folder()
             elif choice == "13":
-                build_giants_pmks()
+                scan_mats_folder()
             elif choice == "14":
+                build_giants_pmks()
+            elif choice == "15":
                 i3d_files = find_i3d_files()
                 if not i3d_files:
                     print("[ERROR] No I3D files found.")
                 else:
                     summarize_i3d_human(i3d_files[0])
-            elif choice == "15":
+            elif choice == "16":
                 print("[INFO] Repairing I3D paths...")
                 repair_i3d_paths()
                 print("[INFO] I3D path repair complete.")
-            elif choice == "16":
-                check_filename_uniqueness()
             elif choice == "17":
-                report_pathname_uniqueness()
+                check_filename_uniqueness()
             elif choice == "18":
+                report_pathname_uniqueness()
+            elif choice == "19":
                 break
             else:
                 print("Invalid option.")
